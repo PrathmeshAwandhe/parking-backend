@@ -33,22 +33,57 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-/**
- * @route   POST /spaces
- * @desc    Add a new parking space
- */
-router.post("/", async (req, res) => {
+router.post("/", async (req, res) => { 
     try {
         const { user_name, address, latitude, longitude, parking_type, price_per_hour } = req.body;
 
-        const newSpace = new SpaceModel({ user_name, address, latitude, longitude, parking_type, price_per_hour });
+        // Validate required fields
+        if (!user_name || !address || !latitude || !longitude || !price_per_hour) {
+            return res.status(400).json({ message: "All fields are required!" });
+        }
+
+        // Convert price_per_hour to a number if it's a string
+        const price = parseFloat(price_per_hour);
+        if (isNaN(price) || price <= 0) {
+            return res.status(400).json({ message: "Invalid price per hour!" });
+        }
+
+        // Validate parking type
+        const validParkingTypes = ["2-wheeler", "4-wheeler"];
+        if (!validParkingTypes.includes(parking_type)) {
+            return res.status(400).json({ message: "Invalid parking type!" });
+        }
+
+        // Check if a space with the same latitude exists
+        const existingSpace = await SpaceModel.findOne({ latitude: parseFloat(latitude) });
+
+        if (existingSpace) {
+            return res.status(400).json({ message: `A space with latitude ${latitude} already exists!` });
+        }
+
+        // Save to database
+        const newSpace = new SpaceModel({ 
+            user_name, 
+            address,
+            latitude: parseFloat(latitude), 
+            longitude: parseFloat(longitude), 
+            parking_type, 
+            price_per_hour: parseFloat(price_per_hour) 
+        });
+        
         await newSpace.save();
 
         res.status(201).json({ message: "Parking space added successfully!", newSpace });
     } catch (error) {
-        res.status(500).json({ message: "Error adding space", error });
+        console.error("Error adding space:", error); // Log the complete error message
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
+
+
+
+
 
 /**
  * @route   PUT /spaces/:id

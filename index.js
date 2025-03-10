@@ -8,7 +8,10 @@ import {SpaceRouter} from "./Routes/SpaceRoute.js";
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:3000", // Frontend URL
+    credentials: true, // Allow cookies (access token) to be sent with the request
+  }));
 
 
 app.use("/auth",UserRouter);
